@@ -178,6 +178,9 @@ public class ListaActivity extends AppCompatActivity {
 
         @Override
         protected void onPreExecute() {
+            
+            //spinner.setVisibility(View.VISIBLE);
+
             super.onPreExecute();
 
             //Toast.makeText(ListaActivity.this, "Lanzando pruebas", Toast.LENGTH_SHORT).show();
@@ -192,6 +195,7 @@ public class ListaActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(BluetoothGatt bluetoothGatt) {
+            spinner.setVisibility(View.GONE);
             super.onPostExecute(bluetoothGatt);
             Log.e(TAG, "Tarea terminada devolbemos BluetoothGatt");
             //leDeviceListAdapter.notifyDataSetChanged();
