@@ -47,7 +47,7 @@ import java.util.UUID;
 
 public class ListaActivity extends AppCompatActivity {
     //private List<Molino> molinos;
-    private List<BluetoothDevice> molinos;
+    private List<Molino> molinos;
     private List<BluetoothDevice> devices;
     private ProgressDialog progres;
     private ListView listView;
@@ -67,8 +67,7 @@ public class ListaActivity extends AppCompatActivity {
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            //devices.add(device); //Aqui los mete todos
-                            leDeviceListAdapter.addDevice(device); //Aqui no mete repetidos ni mete otra cosa que no sean Molinos con lo que no s eve nada en la lista
+                            leDeviceListAdapter.addGrinder(device);
                             leDeviceListAdapter.notifyDataSetChanged();
                         }
                     });
@@ -81,7 +80,7 @@ public class ListaActivity extends AppCompatActivity {
         setContentView(R.layout.activity_lista);
         this.progres = new ProgressDialog(ListaActivity.this);
         //this.resultStatusTextView = (TextView) findViewById(R.id.resultStatusTextView);
-        this.molinos = new ArrayList<BluetoothDevice>();
+        this.molinos = new ArrayList<Molino>();
         this.devices = new ArrayList<BluetoothDevice>();
         this.leDeviceListAdapter = new MolinoAdapter(ListaActivity.this, R.layout.list_item, this.molinos);
         this.listView = (ListView) findViewById(R.id.listView);
@@ -150,35 +149,24 @@ public class ListaActivity extends AppCompatActivity {
     }
 
     public void testDevices() {
-        //Ponemos los dispositivos en un list de BluetoothDevice
-        final int molinoActual = 0;
-        List<Thread> threads = new ArrayList<Thread>();
-        for(int i =0;i<this.leDeviceListAdapter.getCount();i++) {
-            this.devices.add((BluetoothDevice) this.leDeviceListAdapter.getItem(i));
-        }
-        //Nos conectamos al servidor GATT (aqui no podremos NUNCA USAR UN BLUCLE PERO ESTE METODO ES ASYNCRONOUS Y SE LIARA UNA TANGANA BRUTAL
-        //Asi que nos conectamos el primer dispositivo si es que existe y en la captura de la señal de acabado pasaremos el siguiente editando el valor de value
-        //BluetoothDevice device = this.devices.get(0);
-        //final BluetoothGatt bluetoothGatt = device.connectGatt(ListaActivity.this, false, new CallBack());
-        for(int i =0;i<this.devices.size();i++) {
-            new Blue().execute(this.devices.get(i));
+
+
+        for(Molino grinder: this.leDeviceListAdapter.getAllGrinders()) {
+            new Blue().execute(grinder);
         }
 
         Log.w("Threads: ","Threads Lanzados a saco");
-        /*BlueReceiver rec = new BlueReceiver();
-        IntentFilter filter = new IntentFilter("CONNECTED");
-        filter.addAction("ACTION_DATA_AVAIABLE");
-        registerReceiver(rec, filter);*/
+       
     }
 
-    private class Blue extends AsyncTask<BluetoothDevice, String, BluetoothGatt> {
+    private class Blue extends AsyncTask<Molino, String, BluetoothGatt> {
 
         final String TAG = "BlueAsyncTask";
         BluetoothGatt bluetoothGatt;
 
         @Override
         protected void onPreExecute() {
-            
+
             //spinner.setVisibility(View.VISIBLE);
 
             super.onPreExecute();
@@ -203,8 +191,8 @@ public class ListaActivity extends AppCompatActivity {
         }
 
         @Override
-        protected BluetoothGatt doInBackground(BluetoothDevice... bluetoothDevices) {
-            this.bluetoothGatt = bluetoothDevices[0].connectGatt(ListaActivity.this, false, new BluetoothGattCallback() {
+        protected BluetoothGatt doInBackground(Molino... grinders) {
+            this.bluetoothGatt = grinders[0].getDevice().connectGatt(ListaActivity.this, false, new BluetoothGattCallback() {
                 int operacionesEscritura = 0;
                 int operacionesLectura = 0;
                 String singleDosesValue;
@@ -251,6 +239,7 @@ public class ListaActivity extends AppCompatActivity {
                         }
                     } else {
                         Log.w("BluetoothGATT", "ERROR AL CONECTAR A DISPOSITIVO: " + gatt.getDevice().getAddress());
+
                         gatt.close();
                     }
                     super.onConnectionStateChange(gatt, status, newState);
@@ -312,6 +301,7 @@ public class ListaActivity extends AppCompatActivity {
                         completedCommand();
                     } else {
                         Log.e("Leyendo", "Eror de lectuta");
+                        actualizaDispositivo(gatt, false);
                         completedCommand();
                     }
                     super.onCharacteristicRead(gatt, characteristic, status);
@@ -332,12 +322,9 @@ public class ListaActivity extends AppCompatActivity {
                         }
                     }
                     /*AQUI YA SE PUEDE EDITAR LA INTERFACE PARA QUE SALGA EL NUMERO DE DOSIS SIMPLES Y DOSIS DOBLES DE LOS MOLINOS*/
-                    Info infoDevice = new Info();
-                    infoDevice.setSingleDoses((int) traza[10]);
-                    infoDevice.setDoubleDoses((int) traza[14]);
-                    this.singleDosesValue = Integer.toString(infoDevice.getSingleDoses());
-                    this.doubleDosesValue = Integer.toString(infoDevice.getDoubleDoses());
-                    actualizaDispositivo(Integer.toString(infoDevice.getSingleDoses()), Integer.toString(infoDevice.getDoubleDoses()));
+                    grinders[0].setSingleDoses((int) traza[10]);
+                    grinders[0].setDoubleDoses((int) traza[14]);
+                    actualizaDispositivo(gatt, true);
                     /**************************************************************************************************************/
                     //infoDevice.setSingleDoses();
                     //int[] respuesta = bytesToInts(this.read.getValue());
@@ -478,18 +465,8 @@ public class ListaActivity extends AppCompatActivity {
 
                 }
 
-                void actualizaDispositivo(String singleDoses, String doubleDoses) {
-                    String MAC = bluetoothDevices[0].getAddress();
-                    View vista;
-                    for(int i=0;i<leDeviceListAdapter.getCount();i++) {
-                        if(((BluetoothDevice) leDeviceListAdapter.getItem(i)).getAddress().equals(MAC)) {
-                            leDeviceListAdapter.setSingleDoses(singleDoses);
-                            leDeviceListAdapter.setDoubleDoses(doubleDoses);
-                            leDeviceListAdapter.setCorrect(true);
-                        }
-                    }
-
-                    //leDeviceListAdapter.notifyDataSetChanged();
+                void actualizaDispositivo(BluetoothGatt gatt, boolean correct) {
+                    grinders[0].setCorrect(correct);
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
@@ -497,6 +474,7 @@ public class ListaActivity extends AppCompatActivity {
                         }
                     });
                     Log.i(TAG, "Editamos vista");
+                    gatt.disconnect();
                 }
                 /******************************************************************************************************************************/
 

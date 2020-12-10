@@ -20,16 +20,17 @@ public class MolinoAdapter extends BaseAdapter {
     private Context ctx;
     private int layout;
     private List<BluetoothDevice> molinos;
+    private List<Molino> grinders;
     private String singleDoses;
     private String doubleDoses;
     private boolean correct;
     private boolean init;
     //private List<View> vistas;
 
-    public MolinoAdapter(Context ctx, int layout, List<BluetoothDevice> molinos) {
+    public MolinoAdapter(Context ctx, int layout, List<Molino> grinders) {
         this.ctx = ctx;
         this.layout = layout;
-        this.molinos = molinos;
+        this.grinders = grinders;
         this.init = true;
         this.correct = false;
         //this.vistas = new ArrayList<View>();
@@ -45,14 +46,28 @@ public class MolinoAdapter extends BaseAdapter {
         }
     }
 
+    public void addGrinder(BluetoothDevice device) {
+        if(!this.grinders.contains(new Molino(device))) {
+            if(device.getName() != null) {
+                if(device.getName().equals("Q10-0")) {
+                    this.grinders.add(new Molino(device));
+                }
+            }
+        }
+    }
+
     @Override
     public int getCount() {
-        return this.molinos.size();
+        return this.grinders.size();
+    }
+
+    public List<Molino> getAllGrinders() {
+        return this.grinders;
     }
 
     @Override
     public Object getItem(int position) {
-        return this.molinos.get(position);
+        return this.grinders.get(position);
     }
 
     @Override
@@ -65,33 +80,52 @@ public class MolinoAdapter extends BaseAdapter {
         View v = convertView;
         LayoutInflater layoutInflater = LayoutInflater.from(this.ctx);
         v = layoutInflater.inflate(R.layout.list_item, null);
-        BluetoothDevice currentMolino = (BluetoothDevice) this.getItem(position);
-
+        //BluetoothDevice currentMolino = (BluetoothDevice) this.getItem(position);
+        Molino currentGrinder = (Molino) this.getItem(position);
         TextView textView = (TextView) v.findViewById(R.id.textView);
         TextView mac = (TextView) v.findViewById(R.id.textView2);
         TextView singleDosesText = (TextView) v.findViewById(R.id.textView4);
         TextView doubleDosesText = (TextView) v.findViewById(R.id.textView5);
         ImageView result = (ImageView) v.findViewById(R.id.imageView2);
-        textView.setText("Name: " + currentMolino.getName());
-        mac.setText("MAC: " + currentMolino.getAddress());
-        singleDosesText.setText("Single doses: -");
-        doubleDosesText.setText("Double doses: - ");
+        textView.setText("Name: " + currentGrinder.getName());
+        mac.setText("MAC: " + currentGrinder.getMAC());
 
-        if(this.singleDoses != null) {
+        if(currentGrinder.getSingleDoses() > -1) {
+            singleDosesText.setText("Single doses: " + Integer.toString(currentGrinder.getSingleDoses()));
+            this.init = false;
+        } else {
+            singleDosesText.setText("Single doses: -");
+        }
+
+        if(currentGrinder.getDoubleDoses() > -1) {
+            doubleDosesText.setText("Double doses: " + Integer.toString(currentGrinder.getDoubleDoses()));
+            this.init = false;
+        } else {
+            doubleDosesText.setText("Double doses: -");
+        }
+
+
+        /*if(this.singleDoses != null) {
             this.init = false;
             singleDosesText.setText("Single doses: " + this.singleDoses);
         }
         if(this.doubleDoses != null) {
             this.init = false;
             doubleDosesText.setText("Double doses: " + this.doubleDoses);
-        }
-        if(this.correct == true && this.init == false) {
-            //IMAGEN VISTO
+        }*/
+        if(currentGrinder.isCorrect() && this.init == false) {
             result.setImageResource(R.drawable.visto);
+        } else if(!currentGrinder.isCorrect() && this.init == false) {
+            result.setImageResource(R.drawable.error);
+        } else {
+            result.setImageResource(R.drawable.locate);
+        }
+        /*if(this.correct == true && this.init == false) {
+            //IMAGEN VISTO
         } else if(this.correct == false && init == false){
             //IMAGEN CRUZ
-            result.setImageResource(R.drawable.error);
-        }
+
+        }*/
 
         return v;
     }

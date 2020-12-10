@@ -21,8 +21,20 @@ public class Molino implements Serializable {
     double singleDosesGrams;
     double doubleDosesGrams;
     BluetoothDevice device;
+    boolean correct;
 
     public Molino() {
+        this.correct = false;
+    }
+
+    public Molino(BluetoothDevice device) {
+        this.device = device;
+        this.name = device.getName();
+        this.MAC = device.getAddress();
+        this.singleDoses = -1;
+        this.doubleDoses = -1;
+        this.correct = false;
+
     }
 
     public Molino(int singleDoses, int doubleDoses, double singleDosesTime, double doubleDosesTime, GrinderMode mode, int missingForCleanning, int missingForDrillChange, double singleDosesGrams, double doubleDosesGrams, BluetoothDevice device) {
@@ -38,6 +50,7 @@ public class Molino implements Serializable {
         this.device = device;
         this.name = device.getName();
         this.MAC = device.getAddress();
+        this.correct = false;
     }
 
     public int getSingleDoses() {
@@ -136,6 +149,14 @@ public class Molino implements Serializable {
 
     public void setMAC(String MAC) {
         this.MAC = MAC;
+    }
+
+    public boolean isCorrect() {
+        return correct;
+    }
+
+    public void setCorrect(boolean correct) {
+        this.correct = correct;
     }
 
     @Override
